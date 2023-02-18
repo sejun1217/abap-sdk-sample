@@ -1,0 +1,45 @@
+*&---------------------------------------------------------------------*
+*& Report ZDEMO_KMS
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT ZDEMO_KMS.
+
+START-OF-SELECTION.
+  PARAMETERS pv_text TYPE string DEFAULT 'Hello, World' OBLIGATORY.
+
+  TRY.
+    DATA(go_session)   = /aws1/cl_rt_session_aws=>create( 'DEMO_KMS' ).
+    DATA(go_kms)       = /aws1/cl_kms_factory=>create( go_session ).
+    DATA lv_hex TYPE xstring.
+    DATA lv_plain TYPE string.
+
+    DATA(lv_keyid) = CONV /aws1/kmskeyidtype( 'KMS ID' ).
+
+    lv_hex = cl_abap_codepage=>convert_to( pv_text ).
+    DATA(lv_plaintext) = CONV /aws1/kmsplaintexttype( lv_hex ).
+
+    DATA(lo_output_en) = go_kms->ENCRYPT(
+      iv_keyid  = lv_keyid
+      iv_plaintext = lv_plaintext
+    ).
+
+    DATA(lo_cipher) = lo_output_en->get_ciphertextblob( ).
+
+    WRITE: / 'encrypt:  ', lo_cipher.
+
+    DATA(lo_output_de) = go_kms->DECRYPT(
+      iv_keyid  = lv_keyid
+      iv_ciphertextblob = lo_cipher
+    ).
+
+    DATA(lo_xplain) = lo_output_de->get_plaintext( ).
+    lv_plain = cl_abap_codepage=>convert_from( lo_xplain ).
+
+    WRITE: / 'decrypt: ', lv_plain.
+
+
+   CATCH /AWS1/CX_KMSKEYUNAVAILEX INTO DATA(lo_kms).
+      DATA(lv_msg) = lo_kms->if_message~get_text( ).
+      MESSAGE lv_msg TYPE 'I'.
+  ENDTRY.
