@@ -1,0 +1,25 @@
+*&---------------------------------------------------------------------*
+*& Report ZDEMO_SQS_RECV_MESSAGE
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT ZDEMO_SQS_RECV_MESSAGE.
+
+  TRY.
+
+     DATA(go_session)   = /aws1/cl_rt_session_aws=>create( 'DEMO' ).
+     DATA(go_sqs)       = /aws1/cl_sqs_factory=>create( go_session ).
+
+     DATA(oo_result) = go_sqs->receivemessage(
+         iv_queueurl = '<sqs url>'
+         iv_maxnumberofmessages = 10
+     ).
+     DATA(lt_messages) = oo_result->get_messages( ).
+
+     LOOP AT lt_messages into DATA(wa).
+       write wa->get_body( ).
+     ENDLOOP.
+
+  CATCH /aws1/cx_sqsoverlimit.
+     MESSAGE 'Maximum number of in-flight messages reached.' TYPE 'E'.
+  ENDTRY.
